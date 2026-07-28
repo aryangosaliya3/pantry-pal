@@ -1,5 +1,6 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "pantry-pal",
+  "description": "A friendly pantry tracker with device-local saving and pantry-aware meal ideas.",
   "version": "0.1.0",
   "private": true,
   "engines": {

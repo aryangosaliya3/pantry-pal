@@ -1,98 +1,91 @@
-# vinext-starter
+# Pantry Pal
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+![Pantry Pal social preview](public/og.png)
 
-## Prerequisites
+Pantry Pal is a friendly, mobile-ready pantry tracker for answering a deceptively hard question: **what can I make with what I already have?**
 
-- Node.js `>=22.13.0`
+The app keeps ingredients organized by storage location, tracks quantities, suggests quick meals, and automatically deducts the ingredients used when a recipe is cooked. All pantry data is saved locally on the device—no account or database required.
 
-## Quick Start
+## Live site
+
+[Open Pantry Pal](https://pantry-pal-kitchen.aryangosaliya.chatgpt.site)
+
+The hosted site is currently private. A standalone offline HTML edition is also included with the project deliverables.
+
+## Features
+
+- Preloaded pantry inventory from a Costco receipt
+- Fridge, freezer, and pantry location filters
+- Fast ingredient search
+- Add and adjust ingredient quantities
+- Pantry-aware breakfast, lunch, and dinner ideas
+- Recipe readiness checks
+- Automatic quantity deductions after cooking
+- Device-local persistence with `localStorage`
+- Responsive layouts for phones and laptops
+- Accessible labels and reduced-motion support
+
+## Included pantry items
+
+Chicken Protein, Nurri Chocolate Protein, Organic Edamame, Spring Rolls, Suja Ginger, Organic Tofu, Guacamole Singles, Oat Nut Bread, Organic White Eggs, Strawberry Spread, Peanut Butter, and Organic Mixed Vegetables.
+
+## Run locally
+
+Requirements: Node.js 22.13 or newer.
 
 ```bash
+git clone https://github.com/aryangosaliya3/pantry-pal.git
+cd pantry-pal
 npm install
 npm run dev
+```
+
+Open the local address shown in the terminal.
+
+## Verify a production build
+
+```bash
 npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+## Project structure
 
-## Included Shape
-
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```text
+app/
+  page.tsx       Pantry UI and interactions
+  globals.css    Responsive visual system
+  layout.tsx     Metadata and social sharing setup
+public/
+  og.png         Pantry Pal sharing card
+.openai/
+  hosting.json   Sites hosting configuration
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## Technology
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+- React 19
+- Next.js 16
+- TypeScript
+- Tailwind CSS 4
+- vinext and Cloudflare Workers-compatible output
+- OpenAI Sites hosting
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+## Data and privacy
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+Pantry inventory is stored in the browser under the `pantry-pal-v3` local-storage key. Nothing is sent to an external database. Clearing browser storage resets the saved inventory to the included Costco receipt items.
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+## Current recipe behavior
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+Meal ideas come from the app's built-in recipe catalog and are matched against current pantry quantities. No external AI model is called in this version.
 
-## Useful Commands
+## Roadmap
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+- Receipt and barcode scanning
+- Optional account-based sync across devices
+- AI-generated recipes and substitutions
+- Expiration reminders and shopping lists
+- Custom recipes and serving-size adjustments
 
-## Learn More
+## Contributing
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Issues and pull requests are welcome. Please run `npm run build` before opening a pull request.
