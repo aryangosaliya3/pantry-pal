@@ -18,7 +18,8 @@ The hosted site is currently private. A standalone offline HTML edition is also 
 - Fridge, freezer, and pantry location filters
 - Fast ingredient search
 - Add and adjust ingredient quantities
-- Pantry-aware breakfast, lunch, and dinner ideas
+- Live AI-generated breakfast, lunch, and dinner ideas powered by OpenAI
+- Built-in recipes that remain available if the AI service is unavailable
 - Recipe readiness checks
 - Automatic quantity deductions after cooking
 - Device-local persistence with `localStorage`
@@ -41,6 +42,10 @@ npm run dev
 ```
 
 Open the local address shown in the terminal.
+
+To enable live AI recipes locally, copy `.env.example` to `.env.local` and add
+your OpenAI API key. Never commit `.env.local` or paste the key into browser-side
+code.
 
 ## Verify a production build
 
@@ -74,15 +79,18 @@ public/
 
 Pantry inventory is stored in the browser under the `pantry-pal-v3` local-storage key. Nothing is sent to an external database. Clearing browser storage resets the saved inventory to the included Costco receipt items.
 
-## Current recipe behavior
+## AI recipe behavior
 
-Meal ideas come from the app's built-in recipe catalog and are matched against current pantry quantities. No external AI model is called in this version.
+Pantry Pal uses the OpenAI Responses API with schema-validated output to create
+three meal ideas from the in-stock pantry. Only ingredient names and quantities
+are sent; the API key remains in the server environment. Generated recipe
+amounts drive the existing **Cook & update pantry** flow.
 
 ## Roadmap
 
 - Receipt and barcode scanning
 - Optional account-based sync across devices
-- AI-generated recipes and substitutions
+- Ingredient substitutions and dietary profiles
 - Expiration reminders and shopping lists
 - Custom recipes and serving-size adjustments
 

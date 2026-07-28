@@ -59,6 +59,10 @@ export default function Home() {
   const [showAdd, setShowAdd] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
   const [toast, setToast] = useState("");
+  const [recipes, setRecipes] = useState<Recipe[]>(RECIPES);
+  const [recipeRequest, setRecipeRequest] = useState("quick and high protein");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [recipeError, setRecipeError] = useState("");
   const [form, setForm] = useState({ name: "", quantity: "1", unit: "item", category: "Pantry" as PantryItem["category"] });
 
   useEffect(() => {
@@ -90,10 +94,10 @@ export default function Home() {
     (filter === "All" || item.category === filter) && item.name.toLowerCase().includes(query.toLowerCase())
   ), [items, filter, query]);
 
-  const availableRecipes = useMemo(() => RECIPES.map((recipe) => {
+  const availableRecipes = useMemo(() => recipes.map((recipe) => {
     const missing = recipe.uses.filter((need) => (items.find((item) => item.name === need.name)?.quantity || 0) < need.amount);
     return { ...recipe, missing };
-  }).filter((recipe) => meal === "All" || recipe.meal === meal), [items, meal]);
+  }).filter((recipe) => meal === "All" || recipe.meal === meal), [items, meal, recipes]);
 
   const adjust = (id: string, amount: number) => {
     setItems((current) => current.map((item) => item.id === id ? { ...item, quantity: Math.max(0, +(item.quantity + amount).toFixed(2)) } : item));
@@ -114,6 +118,31 @@ export default function Home() {
       return used ? { ...item, quantity: Math.max(0, +(item.quantity - used.amount).toFixed(2)) } : item;
     }));
     setToast(`${recipe.title} cooked — pantry updated`);
+  };
+
+  const generateRecipes = async () => {
+    setIsGenerating(true);
+    setRecipeError("");
+    try {
+      const response = await fetch("/api/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map(({ name, quantity, unit, category }) => ({ name, quantity, unit, category })),
+          meal: meal === "All" ? undefined : meal,
+          request: recipeRequest,
+        }),
+      });
+      const data = await response.json() as { recipes?: Recipe[]; error?: string };
+      if (!response.ok || !data.recipes) throw new Error(data.error || "Could not generate recipes.");
+      setRecipes(data.recipes);
+      setMeal("All");
+      setToast("Fresh AI meal ideas are ready");
+    } catch (error) {
+      setRecipeError(error instanceof Error ? error.message : "Could not generate recipes.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const lowCount = items.filter((item) => item.quantity > 0 && item.quantity <= 1).length;
@@ -167,7 +196,7 @@ export default function Home() {
         </section>
 
         <section className="recipeSection">
-          <div className="recipeIntro"><p className="eyebrow">PANTRY-POWERED RECIPES</p><h2>Good food, minus<br/>the grocery run.</h2><p>Ideas are matched to what you already own. Cook one and its ingredients are deducted automatically.</p><button className="primary dark" onClick={() => setShowRecipes(true)}>Generate meal ideas ✦</button></div>
+          <div className="recipeIntro"><p className="eyebrow">OPENAI-POWERED RECIPES</p><h2>Good food, minus<br/>the grocery run.</h2><p>Ask the AI chef for ideas matched to what you own. Cook one and its ingredients are deducted automatically.</p><button className="primary dark" onClick={() => setShowRecipes(true)}>Ask the AI chef ✦</button></div>
           <div className="recipePreview">
             {availableRecipes.slice(0, 2).map((recipe, index) => <article className="previewCard" key={recipe.id}><span className="number">0{index + 1}</span><div><span className="mealTag">{recipe.meal} · {recipe.minutes} min</span><h3>{recipe.title}</h3><p>{recipe.description}</p></div><div className="protein"><b>{recipe.protein}g</b><span>protein</span></div></article>)}
           </div>
@@ -178,7 +207,7 @@ export default function Home() {
 
       {showAdd && <div className="modalBackdrop" onMouseDown={() => setShowAdd(false)}><div className="modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="add-title"><button className="close" onClick={() => setShowAdd(false)}>×</button><p className="eyebrow">NEW INGREDIENT</p><h2 id="add-title">Add to your pantry</h2><form onSubmit={addItem}><label>Ingredient name<input autoFocus required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Greek yogurt" /></label><div className="formRow"><label>Quantity<input type="number" min="0" step="0.25" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></label><label>Unit<input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="cups" /></label></div><label>Stored in<select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as PantryItem["category"] })}><option>Pantry</option><option>Fridge</option><option>Freezer</option></select></label><button className="primary dark full" type="submit">Add ingredient</button></form></div></div>}
 
-      {showRecipes && <div className="recipeDrawer" role="dialog" aria-modal="true" aria-label="Meal ideas"><div className="drawerHead"><div><p className="eyebrow">MATCHED TO YOUR PANTRY</p><h2>Meal ideas</h2></div><button className="close" onClick={() => setShowRecipes(false)}>×</button></div><div className="mealFilters">{["All", "Breakfast", "Lunch", "Dinner"].map((choice) => <button key={choice} className={meal === choice ? "active" : ""} onClick={() => setMeal(choice)}>{choice}</button>)}</div><div className="drawerList">{availableRecipes.map((recipe) => <article className="drawerRecipe" key={recipe.id}><div className="drawerRecipeTop"><span className="mealTag">{recipe.meal} · {recipe.minutes} min</span><span className={recipe.missing.length ? "missing" : "ready"}>{recipe.missing.length ? `${recipe.missing.length} missing` : "Ready to make"}</span></div><h3>{recipe.title}</h3><p>{recipe.description}</p><div className="ingredients">{recipe.uses.map((used) => <span key={used.name}>{used.amount}× {used.name.replace("Organic ", "")}</span>)}</div><button disabled={recipe.missing.length > 0} onClick={() => cook(recipe)}>{recipe.missing.length ? `Need ${recipe.missing.map((m) => m.name).join(", ")}` : "Cook & update pantry"}</button></article>)}</div></div>}
+      {showRecipes && <div className="recipeDrawer" role="dialog" aria-modal="true" aria-label="Meal ideas"><div className="drawerHead"><div><p className="eyebrow">OPENAI CHEF · MATCHED TO YOUR PANTRY</p><h2>Meal ideas</h2></div><button className="close" onClick={() => setShowRecipes(false)}>×</button></div><div className="mealFilters">{["All", "Breakfast", "Lunch", "Dinner"].map((choice) => <button key={choice} className={meal === choice ? "active" : ""} onClick={() => setMeal(choice)}>{choice}</button>)}</div><div className="aiPrompt"><label htmlFor="recipe-request">What sounds good?</label><div><input id="recipe-request" value={recipeRequest} maxLength={240} onChange={(event) => setRecipeRequest(event.target.value)} placeholder="15 minutes, high protein, spicy…" onKeyDown={(event) => { if (event.key === "Enter") void generateRecipes(); }} /><button onClick={() => void generateRecipes()} disabled={isGenerating}>{isGenerating ? "Thinking…" : "Generate with AI ✦"}</button></div><small>Your pantry is sent securely to OpenAI. The API key stays on the server.</small>{recipeError && <p role="alert">{recipeError}</p>}</div><div className="drawerList">{isGenerating && <div className="chefLoading"><span>✦</span><b>Pantry Pal is cooking up ideas…</b></div>}{!isGenerating && availableRecipes.map((recipe) => <article className="drawerRecipe" key={recipe.id}><div className="drawerRecipeTop"><span className="mealTag">{recipe.meal} · {recipe.minutes} min</span><span className={recipe.missing.length ? "missing" : "ready"}>{recipe.missing.length ? `${recipe.missing.length} missing` : "Ready to make"}</span></div><h3>{recipe.title}</h3><p>{recipe.description}</p><div className="ingredients">{recipe.uses.map((used) => <span key={used.name}>{used.amount}× {used.name.replace("Organic ", "")}</span>)}</div><button disabled={recipe.missing.length > 0} onClick={() => cook(recipe)}>{recipe.missing.length ? `Need ${recipe.missing.map((m) => m.name).join(", ")}` : "Cook & update pantry"}</button></article>)}</div></div>}
       {toast && <div className="toast" role="status">✓ {toast}</div>}
     </main>
   );
